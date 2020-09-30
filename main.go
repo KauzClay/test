@@ -1,10 +1,12 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/golang-commonmark/markdown"
 )
@@ -12,7 +14,6 @@ import (
 func getFencedYAMLContent(tok markdown.Token) string {
 	switch tok := tok.(type) {
 	case *markdown.Fence:
-		fmt.Println(tok)
 		if tok.Params == "yaml" {
 			return tok.Content
 		}
@@ -28,8 +29,15 @@ func writeToFile(name, content string) error {
 
 func main() {
 
+	if len(os.Args) != 2 {
+		fmt.Println("Please specify input markdown file")
+		fmt.Println("Usage: ./executable example-input.md")
+		return
+	}
+
 	input := os.Args[1]
-	output := flag.String("output-filename", "output.yml", "If not specified, will output to output.yml")
+	filename := strings.TrimSuffix(input, filepath.Ext(input))
+	output := filename
 
 	doc, err := ioutil.ReadFile(input)
 
@@ -41,11 +49,14 @@ func main() {
 	md := markdown.New()
 	tokens := md.Parse(doc)
 
+	count := 0
 	for _, t := range tokens {
 		inlineCode := getFencedYAMLContent(t)
 
 		if inlineCode != "" {
-			err := writeToFile(*output, inlineCode)
+			outputFilename := output + "-" + strconv.Itoa(count) + ".yml"
+			err := writeToFile(outputFilename, inlineCode)
+			count += 1
 			if err != nil {
 				panic(err)
 			}
